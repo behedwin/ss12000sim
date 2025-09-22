@@ -4,7 +4,7 @@ import streamlit as st
 from util import export_csv
 
 def load_export_section(db):
-    st.markdown("<hr>", unsafe_allow_html=True)
+    #st.markdown("<hr>", unsafe_allow_html=True)
     st.subheader("Exportera data")
 
     # ----- CSV -----

@@ -31,6 +31,27 @@ def load_ui_groupManagement_form(db, group_types, school_types):
             g_start = st.date_input("StartDate", key="g_start")
             g_end = st.date_input("EndDate", key="g_end")
 
+            selected_syllabus_id = None
+            if g_type in undervisning_types:
+                syllabus_list = list(db["syllabus"].keys())
+                if syllabus_list:
+                    def syllabus_label(sid):
+                        s = db["syllabus"][sid]
+                        if s.get("SyllabusSubjectDesignation"):
+                            return f"Ämne: {s['DisplayName']}"
+                        else:
+                            return f"Kurs: {s['DisplayName']}"
+                    
+                    selected_syllabus_id = st.selectbox(
+                        "Välj syllabus",
+                        syllabus_list,
+                        format_func=syllabus_label,
+                        key="g_syllabus"
+                    )
+                else:
+                    st.info("Ingen syllabus definierad")
+
+
             if st.button("Lägg till grupp", key="btn_add_group"):
                 new_id = gen_id()
                 db["groups"][new_id] = {
@@ -43,6 +64,8 @@ def load_ui_groupManagement_form(db, group_types, school_types):
                     "EndDate": g_end.isoformat() if g_end else None
                 }
 
+                syllabus_data = db["syllabus"].get(selected_syllabus_id, {}) if selected_syllabus_id else {}
+
                 # Skapa aktivitet direkt om det är en undervisningsgrupp
                 if g_type in undervisning_types:
                     act_id = gen_id()
@@ -51,14 +74,14 @@ def load_ui_groupManagement_form(db, group_types, school_types):
                         "DisplayName": g_name,
                         "ActivityType": g_type,
                         "OrganisationId": g_org,
-                        "SyllabusId": None,
-                        "SyllabusSchoolType": g_school,
-                        "SyllabusSubjectName": g_name,
+                        "SyllabusId": selected_syllabus_id,
+                        "SyllabusSchoolType": syllabus_data.get("SyllabusSchoolType", g_school),
+                        "SyllabusSubjectName": syllabus_data.get("SyllabusSubjectName", g_name),
                         "StartDate": g_start.isoformat(),
                         "EndDate": g_end.isoformat() if g_end else None,
-                        "SyllabusSubjectDesignation": None,
-                        "SyllabusCourseCode": None,
-                        "SyllabusCourseName": None
+                        "SyllabusSubjectDesignation": syllabus_data.get("SyllabusSubjectDesignation"),
+                        "SyllabusCourseCode": syllabus_data.get("SyllabusCourseCode"),
+                        "SyllabusCourseName": syllabus_data.get("SyllabusCourseName")
                     }
 
                 st.success(
@@ -71,8 +94,8 @@ def load_ui_groupManagement_form(db, group_types, school_types):
     # ----------------------------
     group_list = list(db["groups"].keys())
 
-    st.subheader("Koppla person till organisatorisk grupp (Klass etc.)")
-    with st.expander("Klass"):
+    #st.subheader("Koppla person till organisatorisk grupp (Klass etc.)")
+    with st.expander("Skapa organisatorisk grupps koppling"):
         if not group_list:
             st.info("Ingen grupp tillgänglig")
         else:
@@ -157,8 +180,8 @@ def load_ui_groupManagement_form(db, group_types, school_types):
     # ----------------------------
     group_list = list(db["groups"].keys())
 
-    st.subheader("Koppla person till aktivitetsgrupp (Undervisning etc.)")
-    with st.expander("Undervisning"):
+    #st.subheader("Koppla person till aktivitetsgrupp (Undervisning etc.)")
+    with st.expander("Skapa aktivitetsgrupps koppling"):
         if not group_list:
             st.info("Ingen grupp tillgänglig")
         else:
