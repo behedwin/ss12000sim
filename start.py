@@ -1,8 +1,5 @@
 import streamlit as st
-from streamlit_option_menu import option_menu
-import pandas as pd
-from gui import gui_main
-from ui.comon import initiate,load_ui_sidebar_menu ,show_db_map,show_db_view,get_enum_values,load_ui_title, load_ui_button_loadExampledata, load_ui_viewMode, load_print_json_section,load_ui_dashboard_counters
+from ui.comon import initiate,load_ui_sidebar_menu ,show_db_map,show_db_view,get_enum_values, load_ui_viewMode, load_print_json_section,load_ui_dashboard_counters
 from ui.org import load_ui_organisation_form, load_ui_organisation_table
 from ui.person import load_ui_person_form,load_ui_person_table
 from ui.duty import load_ui_duty_form,load_ui_duty_table
@@ -11,7 +8,7 @@ from ui.group import load_ui_groupManagement_form,load_ui_groupManagment_table
 from ui.export import load_export_section
 from ui.personrelation import load_ui_personrelation_form,load_ui_personrelation_table
 from ui.importdata import load_import_section
-
+from ui.gen_data import load_ui_gendata
 
 def main():
     db = initiate()
@@ -28,8 +25,6 @@ def main():
     # --- Innehåll per sida ---
     if st.session_state.page == "Hem":
         st.title("Hem")
-
-        load_ui_button_loadExampledata(db)
         load_ui_dashboard_counters(db)
 
     elif st.session_state.page == "Organisation":
@@ -66,6 +61,9 @@ def main():
 
     elif st.session_state.page == "JSON":
         load_print_json_section(db)
+
+    elif st.session_state.page == "Generera data":
+        load_ui_gendata(db)
 
 
 if __name__ == "__main__":
