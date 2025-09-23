@@ -1,7 +1,7 @@
 import streamlit as st
 from util import gen_id
 from datetime import date
-
+import pandas as pd
 
 def load_ui_enrolment_form(db, school_types):
     persons_list = list(db["persons"].keys())
@@ -41,3 +41,20 @@ def load_ui_enrolment_form(db, school_types):
                     "SchoolYear": school_year
                 }
                 st.success(f"Enrolment skapad: {db['persons'][enrol_person]['GivenName']} → {school_year}")
+
+def load_ui_enrolment_table(db):
+    with st.expander("Visa inskrivningar"):
+        st.write("Lista över alla inskrivningar")
+        df = pd.DataFrame(db["enrolments"].values())
+        if "OrganisationId" in df.columns:
+            df["OrganisationName"] = df["OrganisationId"].map(lambda oid: db["organisations"][oid]["DisplayName"] if oid in db["organisations"] else "")
+        if "PersonId" in df.columns:
+            df["PersonName"] = df["PersonId"].map(lambda pid: f"{db['persons'][pid]['GivenName']} {db['persons'][pid]['FamilyName']}" if pid in db["persons"] else "")
+
+        search = st.text_input("Sök inskrivning (elev)")
+        if search:
+            mask = df.apply(lambda row: search.lower() in row.astype(str).str.lower().to_string(), axis=1)
+            df = df[mask]
+        st.dataframe(df)
+        
+

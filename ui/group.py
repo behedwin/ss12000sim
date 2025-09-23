@@ -1,8 +1,9 @@
 import streamlit as st
 from util import gen_id
 from util import today
+import pandas as pd
 
-def load_ui_groupManagement_form(db, group_types, school_types):
+def load_ui_groupManagement_form(db, group_types, school_types,activity_types):
     # Organisatoriska grupper → Klass
     klass_types = ["Klass", "Mentor", "Avdelning", "Personalgrupp", "Övrigt"]
 
@@ -32,6 +33,7 @@ def load_ui_groupManagement_form(db, group_types, school_types):
             g_end = st.date_input("EndDate", key="g_end")
 
             selected_syllabus_id = None
+            selected_activity_type = None
             if g_type in undervisning_types:
                 syllabus_list = list(db["syllabus"].keys())
                 if syllabus_list:
@@ -48,9 +50,16 @@ def load_ui_groupManagement_form(db, group_types, school_types):
                         format_func=syllabus_label,
                         key="g_syllabus"
                     )
+
+                    selected_activity_type = st.selectbox(
+                        "Välj aktivitetstyp",
+                        activity_types,
+                        #format_func=activity_types,
+                        key="a_activity_type"
+                    )
+
                 else:
                     st.info("Ingen syllabus definierad")
-
 
             if st.button("Lägg till grupp", key="btn_add_group"):
                 new_id = gen_id()
@@ -72,7 +81,7 @@ def load_ui_groupManagement_form(db, group_types, school_types):
                     db["activities"][act_id] = {
                         "ActivityId": act_id,
                         "DisplayName": g_name,
-                        "ActivityType": g_type,
+                        "ActivityType": selected_activity_type,
                         "OrganisationId": g_org,
                         "SyllabusId": selected_syllabus_id,
                         "SyllabusSchoolType": syllabus_data.get("SyllabusSchoolType", g_school),
@@ -259,3 +268,89 @@ def load_ui_groupManagement_form(db, group_types, school_types):
                                         "EndDate": None
                                     }
                     st.success("Person kopplad till Undervisningsgrupp")
+
+def load_ui_groupManagment_table(db):
+    with st.expander("Visa grupper"):
+        st.write("Lista över alla grupper")
+        df = pd.DataFrame(db["groups"].values())
+        if "OrganisationId" in df.columns:
+            df["OrganisationName"] = df["OrganisationId"].map(lambda oid: db["organisations"][oid]["DisplayName"] if oid in db["organisations"] else "")
+        search = st.text_input("Sök grupp",key="searchgroups")
+        if search:
+            mask = df.apply(lambda row: search.lower() in row.astype(str).str.lower().to_string(), axis=1)
+            df = df[mask]
+        st.dataframe(df)
+    with st.expander("Visa aktiviteter"):
+        st.write("Lista över aktiviteter")
+        df = pd.DataFrame(db["activities"].values())
+        if "OrganisationId" in df.columns:
+            df["OrganisationName"] = df["OrganisationId"].map(lambda oid: db["organisations"][oid]["DisplayName"] if oid in db["organisations"] else "")
+        search = st.text_input("Sök aktivitet",key="searchactivities")
+        if search:
+            mask = df.apply(lambda row: search.lower() in row.astype(str).str.lower().to_string(), axis=1)
+            df = df[mask]
+        st.dataframe(df)
+    with st.expander("Visa grupps koppling till aktivitet"):
+        st.write("Lista över gruppers koppling till aktiviteter")
+        df = pd.DataFrame(db["groupassignments"].values())
+        if "GroupId" in df.columns:
+            df["GroupName"] = df["GroupId"].map(lambda gid: db["groups"][gid]["DisplayName"] if gid in db["groups"] else "")
+        if "ActivityId" in df.columns:
+            df["ActivityName"] = df["ActivityId"].map(lambda aid: db["activities"][aid]["DisplayName"] if aid in db["activities"] else "")
+        search = st.text_input("Sök groupassignments (grupp och aktivitets koppling)",key="groupassignments")
+        if search:
+            mask = df.apply(lambda row: search.lower() in row.astype(str).str.lower().to_string(), axis=1)
+            df = df[mask]
+        st.dataframe(df)
+    with st.expander("Visa elevers gruppkopplingar"):
+        st.write("Lista över elever i grupper")
+        df = pd.DataFrame(db["groupmemberships"].values())
+        if "PersonId" in df.columns:
+            df["PersonName"] = df["PersonId"].map(lambda pid: f"{db['persons'][pid]['GivenName']} {db['persons'][pid]['FamilyName']}" if pid in db["persons"] else "")
+        if "GroupId" in df.columns:
+            df["GroupName"] = df["GroupId"].map(lambda gid: db["groups"][gid]["DisplayName"] if gid in db["groups"] else "")
+        search = st.text_input("Sök gruppmedlemskap (elever)",key="groupmemberships")
+        if search:
+            mask = df.apply(lambda row: search.lower() in row.astype(str).str.lower().to_string(), axis=1)
+            df = df[mask]
+        st.dataframe(df)
+    with st.expander("Visa personals koppling i organisatoriska grupper"):
+        st.write("Lista över personal i organisationsgrupper")
+        df = pd.DataFrame(db["assignmentroles"].values())
+        if "GroupId" in df.columns:
+            df["GroupName"] = df["GroupId"].map(lambda gid: db["groups"][gid]["DisplayName"] if gid in db["groups"] else "")
+        if "DutyId" in df.columns:
+            df["PersonName"] = df["DutyId"].map(
+                lambda did: f"{db['persons'][db['duties'][did]['PersonId']]['GivenName']} {db['persons'][db['duties'][did]['PersonId']]['FamilyName']}"
+                if did in db["duties"] and db["duties"][did]["PersonId"] in db["persons"] else ""
+            )
+        search = st.text_input("Sök assignmentroles (personal i org-grupp)",key="searchassignmentroles")
+        if search:
+            mask = df.apply(lambda row: search.lower() in row.astype(str).str.lower().to_string(), axis=1)
+            df = df[mask]
+        st.dataframe(df)
+    with st.expander("Visa personals koppling i aktivitetsgrupper"):
+        st.write("Lista över personal i aktivitetsgrupper")
+        df = pd.DataFrame(db["dutyassignments"].values())
+        if "DutyId" in df.columns:
+            df["PersonName"] = df["DutyId"].map(
+                lambda did: f"{db['persons'][db['duties'][did]['PersonId']]['GivenName']} {db['persons'][db['duties'][did]['PersonId']]['FamilyName']}"
+                if did in db["duties"] and db["duties"][did]["PersonId"] in db["persons"] else ""
+            )
+        if "ActivityId" in df.columns:
+            df["ActivityName"] = df["ActivityId"].map(lambda aid: db["activities"][aid]["DisplayName"] if aid in db["activities"] else "")
+        search = st.text_input("Sök dutyassignments (personal i aktivitetsgrupp)",key="searchdutyassignments")
+        if search:
+            mask = df.apply(lambda row: search.lower() in row.astype(str).str.lower().to_string(), axis=1)
+            df = df[mask]
+        st.dataframe(df)
+
+
+
+
+
+
+
+
+
+

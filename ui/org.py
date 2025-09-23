@@ -1,5 +1,6 @@
 import streamlit as st
 from util import gen_id
+import pandas as pd
 
 def load_ui_organisation_form(db, school_types):
     st.subheader("Organisationer")
@@ -22,3 +23,13 @@ def load_ui_organisation_form(db, school_types):
                 "ShortName": org_short
             }
             st.success(f"Organisation skapad: {org_name}")
+
+def load_ui_organisation_table(db):
+    with st.expander("Visa organisationer"):
+        st.write("Lista över alla skolor/organisationer")
+        df = pd.DataFrame(db["organisations"].values())
+        search = st.text_input("Sök organisation")
+        if search:
+            mask = df.apply(lambda row: search.lower() in row.astype(str).str.lower().to_string(), axis=1)
+            df = df[mask]        
+        st.dataframe(df)

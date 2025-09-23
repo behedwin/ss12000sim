@@ -1,5 +1,6 @@
 import streamlit as st
 from util import gen_id
+import pandas as pd
 
 def load_ui_person_form(db, sex_types):
     st.subheader("Personer")
@@ -32,3 +33,14 @@ def load_ui_person_form(db, sex_types):
                 "StaffEduPersonPrincipalName": staff_upn
             }
             st.success(f"Person skapad: {given} {family}")
+
+def load_ui_person_table(db):
+    with st.expander("Visa personer"):
+        st.write("Lista över alla personer")
+        df = pd.DataFrame(db["persons"].values())
+        search = st.text_input("Sök person")
+        if search:
+            mask = df.apply(lambda row: search.lower() in row.astype(str).str.lower().to_string(), axis=1)
+            df = df[mask]
+
+        st.dataframe(df)

@@ -2,6 +2,7 @@ import streamlit as st
 from graphviz import Digraph
 import pandas as pd
 from util import today, gen_id
+from streamlit_option_menu import option_menu
 
 def load_ui_title():
     st.title("SS12000 Simulering")
@@ -15,58 +16,63 @@ def load_ui_viewMode():
     return view_mode
 
 def load_print_json_section(db):
-    #PRINT ORGANISATION JSON
-    st.subheader("Organisationer")
-    if db["organisations"]:
-        st.json(db["organisations"], expanded=False)
+    
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        #PRINT ORGANISATION JSON
+        st.subheader("Organisationer")
+        if db["organisations"]:
+            st.json(db["organisations"], expanded=False)
 
-    #PRINT PERSON JSON
-    st.subheader("Personer")
-    if db["persons"]:
-        st.json(db["persons"], expanded=False)
+        #PRINT PERSON JSON
+        st.subheader("Personer")
+        if db["persons"]:
+            st.json(db["persons"], expanded=False)
 
-    #PRINT DUTIES JSON
-    st.subheader("Duties")
-    if db["duties"]:
-        st.json(db["duties"], expanded=False)
+        #PRINT DUTIES JSON
+        st.subheader("Duties")
+        if db["duties"]:
+            st.json(db["duties"], expanded=False)
 
-    #PRINT ENROLMENT JSON
-    st.subheader("Enrolments")
-    if db["enrolments"]:
-        st.json(db["enrolments"], expanded=False)
+        #PRINT ENROLMENT JSON
+        st.subheader("Enrolments")
+        if db["enrolments"]:
+            st.json(db["enrolments"], expanded=False)
 
-    #PRINT GROUP JSON
-    st.subheader("Groups")
-    if db["groups"]:
-        st.json(db["groups"], expanded=False)
+    with col2:
+        #PRINT GROUP JSON
+        st.subheader("Groups")
+        if db["groups"]:
+            st.json(db["groups"], expanded=False)
 
-    #PRINT ACTIVITIES JSON
-    st.subheader("Activities")
-    if db["activities"]:
-        st.json(db["activities"], expanded=False)
+        #PRINT ACTIVITIES JSON
+        st.subheader("Activities")
+        if db["activities"]:
+            st.json(db["activities"], expanded=False)
 
-    #PRINT SYLLABUS JSON
-    st.subheader("Syllabus")
-    if db["syllabus"]:
-        st.json(db["syllabus"], expanded = False)
+        #PRINT SYLLABUS JSON
+        st.subheader("Syllabus")
+        if db["syllabus"]:
+            st.json(db["syllabus"], expanded = False)
 
+    st.write("")
+    st.write("")
 
-    # ----------------------------
-    # Visa automatiska kopplingar
-    # ----------------------------
-    st.subheader("AssignmentRoles (automatiska)")
-    if db["assignmentroles"]:
-        st.json(db["assignmentroles"], expanded=False)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("AssignmentRoles (automatiska)")
+        if db["assignmentroles"]:
+            st.json(db["assignmentroles"], expanded=False)
 
-    st.subheader("DutyAssignments (automatiska)")
-    if db["dutyassignments"]:
-        st.json(db["dutyassignments"], expanded=False)
+        st.subheader("DutyAssignments (automatiska)")
+        if db["dutyassignments"]:
+            st.json(db["dutyassignments"], expanded=False)
 
-    st.subheader("GroupAssignments (automatiska)")
-    if db["groupassignments"]:
-        st.json(db["groupassignments"], expanded=False)
-
-
+    with col2:
+        st.subheader("GroupAssignments (automatiska)")
+        if db["groupassignments"]:
+            st.json(db["groupassignments"], expanded=False)
 
 def get_enum_values():
     return {
@@ -542,5 +548,73 @@ def load_data(db):
             "StartDate": today(),
             "EndDate": None
         }
+
+def initiate():
+    st.set_page_config(layout="wide") 
+
+    # Init session_state
+    if "page" not in st.session_state:
+        st.session_state.page = "Hem"
+    
+    if "db" not in st.session_state:
+        st.session_state["db"] = {k:{} for k in ["organisations","persons","enrolments","duties","personrelations",
+                        "groups","groupmemberships","assignmentroles","activities","groupassignments","dutyassignments","syllabus"]}
+        db = st.session_state.db
+
+    db = st.session_state.db
+    return db
+
+def load_ui_sidebar_menu():
+    # --- Sidebar meny ---
+    with st.sidebar:
+        st.markdown("")
+        selected = option_menu(
+            menu_title=None,
+            options=["Hem", "Organisation", "Personer", "Inskrivningar", "Anställningar", "Grupper","Föräldrar","JSON", "Export", "Import"],
+            #icons=["house", "bar-chart", "gear"],
+            menu_icon="cast",
+            default_index=0,
+            orientation="vertical",
+            styles={
+                "container": {
+                    "padding": "0px",
+                    "background-color": "#1E1E2F00",
+                    "width": "200px"   # <-- här sätter du bredden
+                },
+                "icon": {"color": "white", "font-size": "20px"},
+                "nav-link": {
+                    "font-size": "14px",
+                    "text-align": "left",
+                    "margin":"0px",
+                    "color": "#bbb",
+                    "--hover-color": "#2D2D44",
+                },
+                "nav-link-selected": {
+                    "background-color": "#6B63FF00",
+                    "color": "white",
+                }
+            }
+        )
+        st.session_state.page = selected
+
+def load_ui_dashboard_counters(db):
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Organisation", len(db["organisations"]))
+    with col2:
+        st.metric("Personer", len(db["persons"]))
+    with col3:
+        st.metric("Inskrivningar", len(db["enrolments"]))
+
+
+    col4, col5, col6 = st.columns(3)
+    with col4:
+        st.metric("Anställningar", len(db["duties"]))
+    with col5:
+        st.metric("Grupper", len(db["groups"]))
+    with col6:
+        st.metric("Aktiviteter", len(db["activities"]))
+    st.write("")
+
 
 

@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 from util import gen_id
 from datetime import date
 
@@ -29,3 +30,18 @@ def load_ui_duty_form(db, duty_roles):
                     "Signature": signature
                 }
                 st.success(f"Duty skapad: {duty_role}")
+
+def load_ui_duty_table(db):
+    with st.expander("Visa anställningar"):
+        st.write("Lista över alla anställningar")
+        df = pd.DataFrame(db["duties"].values())
+        if "OrganisationId" in df.columns:
+            df["OrganisationName"] = df["OrganisationId"].map(lambda oid: db["organisations"][oid]["DisplayName"] if oid in db["organisations"] else "")
+        if "PersonId" in df.columns:
+            df["PersonName"] = df["PersonId"].map(lambda pid: f"{db['persons'][pid]['GivenName']} {db['persons'][pid]['FamilyName']}" if pid in db["persons"] else "")
+
+        search = st.text_input("Sök anställning (personal)")
+        if search:
+            mask = df.apply(lambda row: search.lower() in row.astype(str).str.lower().to_string(), axis=1)
+            df = df[mask]
+        st.dataframe(df)
